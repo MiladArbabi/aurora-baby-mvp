@@ -1,10 +1,12 @@
 const mongoose = require('mongoose');
 
-// Schema for User with name and creation timestamp
+// User schema for parents
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
+  email: { type: String, required: true, unique: true },
+  passwordHash: { type: String, required: true },
+  relationship: { type: String, enum: ['Mother', 'Father', 'Guardian'], default: 'Mother' },
+  profilePictureUrl: { type: String }
 });
 
-// Export User model for use in routes
 module.exports = mongoose.model('User', userSchema);
