@@ -1,14 +1,10 @@
 import React from 'react';
 
+// Main app component rendering a simple title
 function App() {
-  const containerStyle = {
-    padding: '20px',
-    fontFamily: 'Arial',
-  };
-
   return (
-    <div style={containerStyle}>
-      <h1>Aurora Baby</h1>
+    <div style={{ padding: '20px', fontFamily: 'Arial' }}>
+      <h1>Aurora Baby</h1> {/* Display app title */}
     </div>
   );
 }
