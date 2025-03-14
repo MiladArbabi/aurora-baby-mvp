@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const apiRoutes = require('./routes/api');
+const cors = require('cors');
 
 // Load environment variables from .env file
 dotenv.config();
@@ -11,6 +12,9 @@ const app = express();
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
+
+// Middleware to allow cross-origin requests
+app.use(cors({ origin: 'http://localhost:3000' }));
 
 // Mount API routes under /api
 app.use('/api', apiRoutes);

@@ -3,6 +3,8 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Child = require('../models/Child');
+const ParentChildLink = require('../models/ParentChildLink');
 
 // Get all users
 router.get('/users', async (req, res) => {
@@ -40,6 +42,29 @@ router.post('/register', async (req, res) => {
     res.status(201).json({ token });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Create profiles (parent and child)
+router.post('/profiles', async (req, res) => {
+  const { relationship, childName, dateOfBirth } = req.body;
+  const token = req.headers.authorization?.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_key');
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    user.relationship = relationship;
+    await user.save();
+
+    const child = new Child({ name: childName, dateOfBirth });
+    await child.save();
+
+    const link = new ParentChildLink({ userId: user._id, childId: child._id });
+    await link.save();
+
+    res.status(201).json({ user, child });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
