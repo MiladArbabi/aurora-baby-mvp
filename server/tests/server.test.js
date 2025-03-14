@@ -1,14 +1,11 @@
 const request = require('supertest');
+const app = require('../server'); // Import Express app
 
-// Point to the running server
-const server = request('http://localhost:5001');
-
-// Test suite for server functionality
+// Test suite for server root
 describe('Server Tests', () => {
-  // Test the root endpoint
   it('GET / should return welcome message', async () => {
-    const response = await server.get('/');
-    expect(response.status).toBe(200);
-    expect(response.text).toBe('Aurora Baby Backend');
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.text).toBe('Aurora Baby Backend');
   });
 });
