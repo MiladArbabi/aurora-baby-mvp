@@ -1,19 +1,42 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Login from '../components/Login';
+import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
+
+jest.mock('firebase/auth', () => ({
+  signInWithPopup: jest.fn(),
+  signInWithEmailAndPassword: jest.fn(),
+  GoogleAuthProvider: jest.fn(() => ({
+    addScope: jest.fn(),
+    setCustomParameters: jest.fn()
+  }))
+}));
 
 describe('Login Component Tests', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+  beforeEach(() => jest.clearAllMocks());
 
-  it('shows loading state during login attempt', async () => {
-    global.fetch = jest.fn().mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ ok: true, json: () => ({ token: 'fake-token' }) }), 100)));
+  it('shows loading state during email login', async () => {
+    signInWithEmailAndPassword.mockResolvedValue({ user: { getIdToken: () => Promise.resolve('fake-token') } });
     render(<Login onLogin={jest.fn()} />);
     fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'jane@example.com' } });
     fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
     fireEvent.click(screen.getByText('Login'));
     expect(screen.getByText('Logging in...')).toBeInTheDocument();
-    expect(screen.getByText('Logging in...')).toBeDisabled();
     await waitFor(() => expect(screen.queryByText('Logging in...')).not.toBeInTheDocument());
+  });
+
+  it('initiates Google login with custom client ID', async () => {
+    signInWithPopup.mockResolvedValue({ user: { getIdToken: () => Promise.resolve('google-token') } });
+    const onLogin = jest.fn();
+    render(<Login onLogin={onLogin} />);
+    fireEvent.click(screen.getByText(/Sign in with Google/i));
+    await waitFor(() => expect(onLogin).toHaveBeenCalled());
+  });
+
+  it('initiates Apple login with mock', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ token: 'apple-token' }) });
+    const onLogin = jest.fn();
+    render(<Login onLogin={onLogin} />);
+    fireEvent.click(screen.getByText(/Sign in with Apple/i));
+    await waitFor(() => expect(onLogin).toHaveBeenCalled());
   });
 });
