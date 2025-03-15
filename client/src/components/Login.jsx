@@ -4,9 +4,11 @@ function Login({ onLogin, onSwitchToRegister }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       const response = await fetch('http://localhost:5001/api/login', {
         method: 'POST',
@@ -19,11 +21,13 @@ function Login({ onLogin, onSwitchToRegister }) {
       }
       const { token } = await response.json();
       localStorage.setItem('token', token);
-      setError(''); // Clear any previous error
-      onLogin(); // Call the login success handler
+      setError('');
+      onLogin();
     } catch (error) {
       console.error('Login error:', error);
       setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -38,6 +42,7 @@ function Login({ onLogin, onSwitchToRegister }) {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email"
           style={{ display: 'block', margin: '10px 0' }}
+          disabled={isLoading}
         />
         <input
           type="password"
@@ -45,12 +50,15 @@ function Login({ onLogin, onSwitchToRegister }) {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
           style={{ display: 'block', margin: '10px 0' }}
+          disabled={isLoading}
         />
-        <button type="submit">Login</button>
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? 'Logging in...' : 'Login'}
+        </button>
       </form>
       <p>
         Don’t have an account?{' '}
-        <button onClick={onSwitchToRegister} style={{ color: 'blue', textDecoration: 'underline' }}>
+        <button onClick={onSwitchToRegister} style={{ color: 'blue', textDecoration: 'underline' }} disabled={isLoading}>
           Register
         </button>
       </p>
