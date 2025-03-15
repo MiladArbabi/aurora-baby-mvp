@@ -1,21 +1,30 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Login from '../components/Login';
-import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
 
+// Mock Firebase entirely
+jest.mock('../firebase', () => ({
+  auth: {
+    signInWithEmailAndPassword: jest.fn(),
+    signInWithPopup: jest.fn()
+  }
+}));
+
+// Mock GoogleAuthProvider separately
 jest.mock('firebase/auth', () => ({
-  signInWithPopup: jest.fn(),
-  signInWithEmailAndPassword: jest.fn(),
   GoogleAuthProvider: jest.fn(() => ({
     addScope: jest.fn(),
     setCustomParameters: jest.fn()
-  }))
+  })),
+  signInWithEmailAndPassword: jest.fn(), // Ensure these are mocked too
+  signInWithPopup: jest.fn()
 }));
 
 describe('Login Component Tests', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('shows loading state during email login', async () => {
-    signInWithEmailAndPassword.mockResolvedValue({ user: { getIdToken: () => Promise.resolve('fake-token') } });
+    const mockUserCredential = { user: { getIdToken: () => Promise.resolve('fake-token') } };
+    require('../firebase').auth.signInWithEmailAndPassword.mockResolvedValue(mockUserCredential);
     render(<Login onLogin={jest.fn()} />);
     fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'jane@example.com' } });
     fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
@@ -25,7 +34,8 @@ describe('Login Component Tests', () => {
   });
 
   it('initiates Google login with custom client ID', async () => {
-    signInWithPopup.mockResolvedValue({ user: { getIdToken: () => Promise.resolve('google-token') } });
+    const mockUserCredential = { user: { getIdToken: () => Promise.resolve('google-token') } };
+    require('../firebase').auth.signInWithPopup.mockResolvedValue(mockUserCredential);
     const onLogin = jest.fn();
     render(<Login onLogin={onLogin} />);
     fireEvent.click(screen.getByText(/Sign in with Google/i));
