@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
 
 function Login({ onLogin, onSwitchToRegister }) {
   const [email, setEmail] = useState('');
@@ -6,26 +8,60 @@ function Login({ onLogin, onSwitchToRegister }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleEmailLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const token = await userCredential.user.getIdToken();
+      localStorage.setItem('token', token);
+      setError('');
+      onLogin();
+    } catch (error) {
+      console.error('Email login error:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
+      provider.setCustomParameters({
+        client_id: '680806226468-vs4o635ngej5t4slk6vjj9hon6qekdo5.apps.googleusercontent.com'
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Login failed');
-      }
+      const userCredential = await signInWithPopup(auth, provider);
+      const token = await userCredential.user.getIdToken();
+      localStorage.setItem('token', token);
+      setError('');
+      onLogin();
+    } catch (error) {
+      console.error('Google login error:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:5001/api/login/apple', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Apple login failed');
       const { token } = await response.json();
       localStorage.setItem('token', token);
       setError('');
       onLogin();
     } catch (error) {
-      console.error('Login error:', error);
-      setError(error.message);
+      console.error('Apple login error:', error);
+      setError('Apple Sign-In unavailable without membership');
     } finally {
       setIsLoading(false);
     }
@@ -33,9 +69,9 @@ function Login({ onLogin, onSwitchToRegister }) {
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial' }}>
-      <h1>Welcome Back to Aurora Baby</h1>
+      <h1>Welcome to Aurora Baby</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleEmailLogin}>
         <input
           type="email"
           value={email}
@@ -56,6 +92,22 @@ function Login({ onLogin, onSwitchToRegister }) {
           {isLoading ? 'Logging in...' : 'Login'}
         </button>
       </form>
+      <div style={{ marginTop: '20px' }}>
+        <button
+          onClick={handleAppleLogin}
+          style={{ display: 'block', margin: '10px 0', background: '#000', color: '#fff' }}
+          disabled={isLoading}
+        >
+          Sign in with Apple
+        </button>
+        <button
+          onClick={handleGoogleLogin}
+          style={{ display: 'block', margin: '10px 0', background: '#4285F4', color: '#fff' }}
+          disabled={isLoading}
+        >
+          Sign in with Google
+        </button>
+      </div>
       <p>
         Don’t have an account?{' '}
         <button onClick={onSwitchToRegister} style={{ color: 'blue', textDecoration: 'underline' }} disabled={isLoading}>
