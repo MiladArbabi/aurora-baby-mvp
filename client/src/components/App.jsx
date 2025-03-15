@@ -1,50 +1,44 @@
+// client/src/components/App.jsx
 import React, { useState, useEffect } from 'react';
-import Register from './Register';
-import Login from './Login';
+import Signup from './Signup';
 import ProfileSetup from './ProfileSetup';
 import ProfileSelection from './ProfileSelection';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token')); // Check if user is logged in
-  const [isNewUser, setIsNewUser] = useState(false); // Track if user just registered
-  const [isProfileSetup, setIsProfileSetup] = useState(false); // Track profile setup completion
-  const [selectedChild, setSelectedChild] = useState(null); // Selected child ID
-  const [users, setUsers] = useState([]); // List of users
-  const [name, setName] = useState(''); // Input for new user name
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  const [isProfileSetupComplete, setIsProfileSetupComplete] = useState(false);
+  const [selectedChild, setSelectedChild] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [name, setName] = useState('');
 
-  // Fetch users after authentication and profile selection (for returning users)
   useEffect(() => {
     if (isAuthenticated && selectedChild) {
       fetch('http://localhost:5001/api/users', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
       })
-        .then(response => {
+        .then((response) => {
           if (!response.ok) {
             console.warn('Failed to fetch users:', response.status);
             return [];
           }
           return response.json();
         })
-        .then(data => setUsers(data || []))
-        .catch(error => {
+        .then((data) => setUsers(data || []))
+        .catch((error) => {
           console.error('Error fetching users:', error);
           setUsers([]);
         });
     }
   }, [isAuthenticated, selectedChild]);
 
-  const handleRegister = () => {
+  const handleAuthSuccess = (isNewUser) => {
     setIsAuthenticated(true);
-    setIsNewUser(true);
-  };
-
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-    setIsNewUser(false);
+    setIsProfileSetupComplete(!isNewUser);
   };
 
   const handleProfileComplete = () => {
-    setIsProfileSetup(true);
+    setIsProfileSetupComplete(true);
+    setSelectedChild('default-child-id'); // Replace with actual logic
   };
 
   const handleProfileSelect = (childId) => {
@@ -55,40 +49,36 @@ function App() {
     e.preventDefault();
     fetch('http://localhost:5001/api/users', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name }),
     })
-      .then(response => {
+      .then((response) => {
         if (!response.ok) {
           throw new Error(`Failed to add user: ${response.status}`);
         }
         return response.json();
       })
-      .then(data => {
-        console.log('New user data:', data); // Debug POST response
-        setUsers(prevUsers => [...prevUsers, data]); // Ensure full object is added
+      .then((data) => {
+        console.log('New user data:', data);
+        setUsers((prevUsers) => [...prevUsers, data]);
         setName('');
       })
-      .catch(error => console.error('Error adding user:', error));
+      .catch((error) => console.error('Error adding user:', error));
   };
 
-  if (!isAuthenticated) {
-    return isNewUser ? (
-      <Register onRegister={handleRegister} />
-    ) : (
-      <Login onLogin={handleLogin} onSwitchToRegister={() => setIsNewUser(true)} />
-    );
+  if (isAuthenticated && !selectedChild && isProfileSetupComplete) {
+    return <ProfileSelection onSelect={handleProfileSelect} />;
   }
 
-  if (isNewUser && !isProfileSetup) {
+  if (isAuthenticated && !isProfileSetupComplete) {
     return <ProfileSetup onComplete={handleProfileComplete} />;
   }
 
-  if (!selectedChild) {
-    return <ProfileSelection onSelect={handleProfileSelect} />;
+  if (!isAuthenticated) {
+    return <Signup onAuthSuccess={handleAuthSuccess} />;
   }
 
   return (
@@ -104,9 +94,8 @@ function App() {
         />
         <button type="submit">Add User</button>
       </form>
-      {/* Render list of users */}
       <ul>
-        {users.map(user => (
+        {users.map((user) => (
           <li key={user._id}>{user.name}</li>
         ))}
       </ul>
