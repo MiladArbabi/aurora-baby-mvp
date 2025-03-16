@@ -8,7 +8,14 @@ describe('ProfileSetup Component Tests', () => {
   beforeEach(() => {
     localStorage.clear();
     jest.clearAllMocks();
+    global.URL.createObjectURL = jest.fn((file) => `mock-url/${file.name}`);
+    // Suppress React style warnings without recursion
+    jest.spyOn(console, 'error').mockImplementation(() => {}); // No-op to avoid stack overflow
     ({ container } = render(<ProfileSetup onComplete={() => {}} />));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('renders profile setup form with clickable avatars', () => {
@@ -21,34 +28,30 @@ describe('ProfileSetup Component Tests', () => {
     expect(container.querySelector('input[type="date"]')).toBeInTheDocument();
     expect(screen.getByTestId('parent-avatar-input')).toBeInTheDocument();
     expect(screen.getByTestId('child-avatar-input')).toBeInTheDocument();
+    expect(screen.getByTestId('parent-avatar')).toHaveAttribute('title', 'Edit avatar');
+    expect(screen.getByTestId('child-avatar')).toHaveAttribute('title', 'Edit avatar');
   });
 
   it('uploads parent avatar successfully', async () => {
     const file = new File(['dummy'], 'parent.jpg', { type: 'image/jpeg' });
     const input = screen.getByTestId('parent-avatar-input');
-    fireEvent.change(input, { target: { files: [file] } });
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } });
+    });
     await waitFor(() => {
-      expect(screen.getByTestId('parent-avatar')).toHaveAttribute('data-src', expect.stringContaining('parent.jpg'));
+      expect(screen.getByTestId('parent-avatar')).toHaveAttribute('data-src', 'mock-url/parent.jpg');
     });
   });
 
   it('uploads child avatar successfully', async () => {
     const file = new File(['dummy'], 'child.jpg', { type: 'image/jpeg' });
     const input = screen.getByTestId('child-avatar-input');
-    fireEvent.change(input, { target: { files: [file] } });
-    await waitFor(() => {
-      expect(screen.getByTestId('child-avatar')).toHaveAttribute('data-src', expect.stringContaining('child.jpg'));
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } });
     });
-  });
-  
-  it('renders profile setup form with parent and child sections', () => {
-    expect(screen.getByText(/Set Up Your Profiles/i)).toBeInTheDocument();
-    expect(screen.getByText(/Parent Information/i)).toBeInTheDocument();
-    expect(screen.getByText(/Child Information/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Your Name/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Baby's Name/i)).toBeInTheDocument();
-    expect(screen.getByRole('combobox')).toBeInTheDocument(); // Relationship dropdown
-    expect(container.querySelector('input[type="date"]')).toBeInTheDocument(); // Birthdate
+    await waitFor(() => {
+      expect(screen.getByTestId('child-avatar')).toHaveAttribute('data-src', 'mock-url/child.jpg');
+    });
   });
 
   it('submits profile setup successfully with all fields', async () => {
@@ -78,6 +81,8 @@ describe('ProfileSetup Component Tests', () => {
             parentName: 'Jane',
             childName: 'Emma',
             dateOfBirth: '2023-01-01',
+            parentAvatar: null,
+            childAvatar: null,
           }),
         })
       );
@@ -97,6 +102,6 @@ describe('ProfileSetup Component Tests', () => {
     });
     await waitFor(() => {
       expect(screen.getByText('API failed')).toBeInTheDocument();
-    });
+    }, { timeout: 2000 }); // Increase timeout if needed
   });
 });

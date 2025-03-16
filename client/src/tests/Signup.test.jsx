@@ -27,7 +27,6 @@ jest.mock('../firebase', () => ({ auth: mockAuth }));
 describe('Signup Component Tests', () => {
   let Signup;
 
-  // Dynamically import Signup before tests run
   beforeAll(async () => {
     const module = await import('../components/Signup');
     Signup = module.default;
@@ -40,11 +39,15 @@ describe('Signup Component Tests', () => {
     sendSignInLinkToEmail.mockResolvedValue();
     isSignInWithEmailLink.mockReturnValue(false);
     signInWithEmailLink.mockResolvedValue({
-      user: { getIdToken: () => 'fake-token' }, // Return token directly, not a Promise
+      user: { getIdToken: () => 'fake-token' },
     });
     signInWithPopup.mockResolvedValue({
       user: { getIdToken: () => Promise.resolve('google-token') },
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks(); // Ensure mocks are cleaned up
   });
 
   it('renders signup options initially', () => {
@@ -108,11 +111,14 @@ describe('Signup Component Tests', () => {
   it('displays error message on email link failure', async () => {
     const { sendSignInLinkToEmail } = require('firebase/auth');
     sendSignInLinkToEmail.mockRejectedValue(new Error('Email send failed'));
+    // Suppress console.error for this specific test
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     render(<Signup />);
     fireEvent.change(screen.getByPlaceholderText('Your email'), { target: { value: 'jane@example.com' } });
     fireEvent.click(screen.getByText('Sign Up with Email'));
     await waitFor(() => {
       expect(screen.getByText('Email send failed')).toBeInTheDocument();
     });
+    console.error.mockRestore(); // Restore after test
   });
 });

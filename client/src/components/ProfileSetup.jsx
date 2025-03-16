@@ -1,23 +1,14 @@
 import React, { useState } from 'react';
 
-/**
- * ProfileSetup component for configuring parent and child profiles with avatar uploads.
- * @param {Object} props - Component props
- * @param {Function} props.onComplete - Callback on successful submission
- */
 function ProfileSetup({ onComplete }) {
   const [relationship, setRelationship] = useState('Mother');
   const [parentName, setParentName] = useState('');
   const [childName, setChildName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [parentAvatar, setParentAvatar] = useState(null); // Avatar file or URL
-  const [childAvatar, setChildAvatar] = useState(null); // Avatar file or URL
+  const [parentAvatar, setParentAvatar] = useState(null);
+  const [childAvatar, setChildAvatar] = useState(null);
   const [error, setError] = useState('');
 
-  /**
-   * Handles form submission with profile data and avatar URLs.
-   * @param {Event} e - Form submission event
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -53,11 +44,6 @@ function ProfileSetup({ onComplete }) {
     }
   };
 
-  /**
-   * Handles avatar file selection.
-   * @param {string} type - 'parent' or 'child'
-   * @param {Event} e - File input change event
-   */
   const handleAvatarChange = (type, e) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith('image/')) {
@@ -107,7 +93,7 @@ function ProfileSetup({ onComplete }) {
               style={{ display: 'block', margin: '10px 0', width: '200px' }}
             />
           </div>
-          <label style={{ cursor: 'pointer' }}>
+          <label style={{ cursor: 'pointer', position: 'relative' }}>
             <input
               type="file"
               accept="image/*"
@@ -117,20 +103,36 @@ function ProfileSetup({ onComplete }) {
             />
             <div
               data-testid="parent-avatar"
+              title="Edit avatar"
               data-src={parentAvatar ? URL.createObjectURL(parentAvatar) : null}
               style={{
                 width: '50px',
                 height: '50px',
                 borderRadius: '50%',
-                background: parentAvatar ? `url(${URL.createObjectURL(parentAvatar)})` : '#ccc',
+                backgroundImage: parentAvatar ? `url(${URL.createObjectURL(parentAvatar)})` : 'none',
+                backgroundColor: parentAvatar ? 'transparent' : '#ccc',
                 backgroundSize: 'cover',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginLeft: '20px',
+                position: 'relative',
               }}
             >
               {!parentAvatar && <span>{parentName ? parentName[0].toUpperCase() : 'P'}</span>}
+              <svg
+                style={{
+                  position: 'absolute',
+                  bottom: '2px',
+                  right: '2px',
+                  width: '12px',
+                  height: '12px',
+                  fill: '#666',
+                }}
+                viewBox="0 0 24 24"
+              >
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+              </svg>
             </div>
           </label>
         </div>
@@ -165,7 +167,7 @@ function ProfileSetup({ onComplete }) {
               style={{ display: 'block', margin: '10px 0', width: '200px' }}
             />
           </div>
-          <label style={{ cursor: 'pointer' }}>
+          <label style={{ cursor: 'pointer', position: 'relative' }}>
             <input
               type="file"
               accept="image/*"
@@ -175,20 +177,36 @@ function ProfileSetup({ onComplete }) {
             />
             <div
               data-testid="child-avatar"
+              title="Edit avatar"
               data-src={childAvatar ? URL.createObjectURL(childAvatar) : null}
               style={{
                 width: '50px',
                 height: '50px',
                 borderRadius: '50%',
-                background: childAvatar ? `url(${URL.createObjectURL(childAvatar)})` : '#ccc',
+                backgroundImage: childAvatar ? `url(${URL.createObjectURL(childAvatar)})` : 'none',
+                backgroundColor: childAvatar ? 'transparent' : '#ccc',
                 backgroundSize: 'cover',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
                 marginLeft: '20px',
+                position: 'relative',
               }}
             >
               {!childAvatar && <span>{childName ? childName[0].toUpperCase() : 'C'}</span>}
+              <svg
+                style={{
+                  position: 'absolute',
+                  bottom: '2px',
+                  right: '2px',
+                  width: '12px',
+                  height: '12px',
+                  fill: '#666',
+                }}
+                viewBox="0 0 24 24"
+              >
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+              </svg>
             </div>
           </label>
         </div>
