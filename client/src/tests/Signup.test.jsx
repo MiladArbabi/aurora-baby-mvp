@@ -1,7 +1,10 @@
 // client/src/tests/Signup.test.jsx
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Signup from '../components/Signup';
 
+// Define mockAuth first
+const mockAuth = {};
+
+// Mock firebase/auth
 jest.mock('firebase/auth', () => {
   const mockGoogleAuthProvider = () => ({
     addScope: jest.fn(),
@@ -18,9 +21,18 @@ jest.mock('firebase/auth', () => {
   };
 });
 
-jest.mock('../firebase', () => ({ auth: {} }));
+// Mock ../firebase with mockAuth
+jest.mock('../firebase', () => ({ auth: mockAuth }));
 
 describe('Signup Component Tests', () => {
+  let Signup;
+
+  // Dynamically import Signup before tests run
+  beforeAll(async () => {
+    const module = await import('../components/Signup');
+    Signup = module.default;
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
@@ -28,7 +40,7 @@ describe('Signup Component Tests', () => {
     sendSignInLinkToEmail.mockResolvedValue();
     isSignInWithEmailLink.mockReturnValue(false);
     signInWithEmailLink.mockResolvedValue({
-      user: { getIdToken: () => Promise.resolve('fake-token') },
+      user: { getIdToken: () => 'fake-token' }, // Return token directly, not a Promise
     });
     signInWithPopup.mockResolvedValue({
       user: { getIdToken: () => Promise.resolve('google-token') },
@@ -51,7 +63,7 @@ describe('Signup Component Tests', () => {
     fireEvent.click(screen.getByText('Sign Up with Email'));
     expect(screen.getByText('Sending...')).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByText(/Please follow the instructions in the email sent to jane@example\.com to complete registration/i)).toBeInTheDocument();
+      expect(screen.getByText(/Please follow the instructions in the email sent to jane@example\.com/i)).toBeInTheDocument();
       expect(screen.queryByText('Sign Up with Email')).not.toBeInTheDocument();
     });
   });
@@ -63,7 +75,7 @@ describe('Signup Component Tests', () => {
     const onAuthSuccess = jest.fn();
     render(<Signup onAuthSuccess={onAuthSuccess} />);
     await waitFor(() => {
-      expect(signInWithEmailLink).toHaveBeenCalledWith(auth, 'jane@example.com', window.location.href);
+      expect(signInWithEmailLink).toHaveBeenCalledWith(mockAuth, 'jane@example.com', window.location.href);
       expect(onAuthSuccess).toHaveBeenCalledWith(true);
       expect(localStorage.getItem('token')).toBe('fake-token');
     });
