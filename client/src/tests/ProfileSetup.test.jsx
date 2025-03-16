@@ -11,6 +11,36 @@ describe('ProfileSetup Component Tests', () => {
     ({ container } = render(<ProfileSetup onComplete={() => {}} />));
   });
 
+  it('renders profile setup form with clickable avatars', () => {
+    expect(screen.getByText(/Set Up Your Profiles/i)).toBeInTheDocument();
+    expect(screen.getByText(/Parent Information/i)).toBeInTheDocument();
+    expect(screen.getByText(/Child Information/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Your Name/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Baby's Name/i)).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    expect(container.querySelector('input[type="date"]')).toBeInTheDocument();
+    expect(screen.getByTestId('parent-avatar-input')).toBeInTheDocument();
+    expect(screen.getByTestId('child-avatar-input')).toBeInTheDocument();
+  });
+
+  it('uploads parent avatar successfully', async () => {
+    const file = new File(['dummy'], 'parent.jpg', { type: 'image/jpeg' });
+    const input = screen.getByTestId('parent-avatar-input');
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(screen.getByTestId('parent-avatar')).toHaveAttribute('data-src', expect.stringContaining('parent.jpg'));
+    });
+  });
+
+  it('uploads child avatar successfully', async () => {
+    const file = new File(['dummy'], 'child.jpg', { type: 'image/jpeg' });
+    const input = screen.getByTestId('child-avatar-input');
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(screen.getByTestId('child-avatar')).toHaveAttribute('data-src', expect.stringContaining('child.jpg'));
+    });
+  });
+  
   it('renders profile setup form with parent and child sections', () => {
     expect(screen.getByText(/Set Up Your Profiles/i)).toBeInTheDocument();
     expect(screen.getByText(/Parent Information/i)).toBeInTheDocument();

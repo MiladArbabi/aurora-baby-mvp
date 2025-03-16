@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
 
+/**
+ * ProfileSetup component for configuring parent and child profiles with avatar uploads.
+ * @param {Object} props - Component props
+ * @param {Function} props.onComplete - Callback on successful submission
+ */
 function ProfileSetup({ onComplete }) {
   const [relationship, setRelationship] = useState('Mother');
   const [parentName, setParentName] = useState('');
   const [childName, setChildName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [parentAvatar, setParentAvatar] = useState(null); // Avatar file or URL
+  const [childAvatar, setChildAvatar] = useState(null); // Avatar file or URL
   const [error, setError] = useState('');
 
+  /**
+   * Handles form submission with profile data and avatar URLs.
+   * @param {Event} e - Form submission event
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -22,7 +33,14 @@ function ProfileSetup({ onComplete }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ relationship, parentName, childName, dateOfBirth }),
+        body: JSON.stringify({
+          relationship,
+          parentName,
+          childName,
+          dateOfBirth,
+          parentAvatar: parentAvatar ? URL.createObjectURL(parentAvatar) : null,
+          childAvatar: childAvatar ? URL.createObjectURL(childAvatar) : null,
+        }),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -32,6 +50,21 @@ function ProfileSetup({ onComplete }) {
     } catch (error) {
       console.error('Profile setup error:', error);
       setError(error.message);
+    }
+  };
+
+  /**
+   * Handles avatar file selection.
+   * @param {string} type - 'parent' or 'child'
+   * @param {Event} e - File input change event
+   */
+  const handleAvatarChange = (type, e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      if (type === 'parent') setParentAvatar(file);
+      else if (type === 'child') setChildAvatar(file);
+    } else {
+      setError('Please select a valid image file.');
     }
   };
 
@@ -74,20 +107,32 @@ function ProfileSetup({ onComplete }) {
               style={{ display: 'block', margin: '10px 0', width: '200px' }}
             />
           </div>
-          <div
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '50%',
-              background: '#ccc',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginLeft: '20px',
-            }}
-          >
-            <span>{parentName ? parentName[0].toUpperCase() : 'P'}</span>
-          </div>
+          <label style={{ cursor: 'pointer' }}>
+            <input
+              type="file"
+              accept="image/*"
+              data-testid="parent-avatar-input"
+              onChange={(e) => handleAvatarChange('parent', e)}
+              style={{ display: 'none' }}
+            />
+            <div
+              data-testid="parent-avatar"
+              data-src={parentAvatar ? URL.createObjectURL(parentAvatar) : null}
+              style={{
+                width: '50px',
+                height: '50px',
+                borderRadius: '50%',
+                background: parentAvatar ? `url(${URL.createObjectURL(parentAvatar)})` : '#ccc',
+                backgroundSize: 'cover',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginLeft: '20px',
+              }}
+            >
+              {!parentAvatar && <span>{parentName ? parentName[0].toUpperCase() : 'P'}</span>}
+            </div>
+          </label>
         </div>
 
         {/* Separator */}
@@ -120,20 +165,32 @@ function ProfileSetup({ onComplete }) {
               style={{ display: 'block', margin: '10px 0', width: '200px' }}
             />
           </div>
-          <div
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '50%',
-              background: '#ccc',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginLeft: '20px',
-            }}
-          >
-            <span>{childName ? childName[0].toUpperCase() : 'C'}</span>
-          </div>
+          <label style={{ cursor: 'pointer' }}>
+            <input
+              type="file"
+              accept="image/*"
+              data-testid="child-avatar-input"
+              onChange={(e) => handleAvatarChange('child', e)}
+              style={{ display: 'none' }}
+            />
+            <div
+              data-testid="child-avatar"
+              data-src={childAvatar ? URL.createObjectURL(childAvatar) : null}
+              style={{
+                width: '50px',
+                height: '50px',
+                borderRadius: '50%',
+                background: childAvatar ? `url(${URL.createObjectURL(childAvatar)})` : '#ccc',
+                backgroundSize: 'cover',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginLeft: '20px',
+              }}
+            >
+              {!childAvatar && <span>{childName ? childName[0].toUpperCase() : 'C'}</span>}
+            </div>
+          </label>
         </div>
 
         <button type="submit" style={{ marginTop: '20px', padding: '10px 20px' }}>
