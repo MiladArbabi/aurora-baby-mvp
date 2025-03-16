@@ -86,4 +86,27 @@ router.post('/profiles', async (req, res) => {
   }
 });
 
+// Get profiles for authenticated user
+router.get('/profiles', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_key');
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const links = await ParentChildLink.find({ userId: user._id });
+    const childIds = links.map(link => link.childId);
+    const children = await Child.find({ _id: { $in: childIds } });
+
+    res.json({
+      parent: { name: user.name, relationship: user.relationship },
+      children: children.map(child => ({ _id: child._id, name: child.name })),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
