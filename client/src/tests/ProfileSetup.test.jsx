@@ -3,25 +3,70 @@ import { act } from 'react';
 import ProfileSetup from '../components/ProfileSetup';
 
 describe('ProfileSetup Component Tests', () => {
-  it('renders profile setup form', () => {
-    render(<ProfileSetup onComplete={() => {}} />);
-    expect(screen.getByText(/Set Up Your Profiles/i)).toBeInTheDocument();
+  let container;
+
+  beforeEach(() => {
+    localStorage.clear();
+    jest.clearAllMocks();
+    ({ container } = render(<ProfileSetup onComplete={() => {}} />));
   });
 
-  it('submits profile setup successfully', async () => {
+  it('renders profile setup form with parent and child sections', () => {
+    expect(screen.getByText(/Set Up Your Profiles/i)).toBeInTheDocument();
+    expect(screen.getByText(/Parent Information/i)).toBeInTheDocument();
+    expect(screen.getByText(/Child Information/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Your Name/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Baby's Name/i)).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeInTheDocument(); // Relationship dropdown
+    expect(container.querySelector('input[type="date"]')).toBeInTheDocument(); // Birthdate
+  });
+
+  it('submits profile setup successfully with all fields', async () => {
     const mockOnComplete = jest.fn();
-    global.fetch = jest.fn(() =>
-      Promise.resolve({ ok: true })
-    );
-    render(<ProfileSetup onComplete={mockOnComplete} />);
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }));
+    localStorage.setItem('token', 'fake-token');
+    render(<ProfileSetup onComplete={mockOnComplete} />, { container });
     await act(async () => {
-      fireEvent.change(screen.getByPlaceholderText(/Child's Name/i), { target: { value: 'Emma' } });
-      fireEvent.change(screen.getByLabelText(/Your Relationship/i), { target: { value: 'Mother' } });
-      fireEvent.change(screen.getByRole('textbox', { type: 'date' }), { target: { value: '2023-01-01' } });
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Mother' } });
+      fireEvent.change(screen.getByPlaceholderText(/Your Name/i), { target: { value: 'Jane' } });
+      fireEvent.change(screen.getByPlaceholderText(/Baby's Name/i), { target: { value: 'Emma' } });
+      fireEvent.change(container.querySelector('input[type="date"]'), { target: { value: '2023-01-01' } });
       fireEvent.click(screen.getByText(/Continue/i));
     });
     await waitFor(() => {
       expect(mockOnComplete).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/profiles',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Authorization': 'Bearer fake-token',
+            'Content-Type': 'application/json',
+          }),
+          body: JSON.stringify({
+            relationship: 'Mother',
+            parentName: 'Jane',
+            childName: 'Emma',
+            dateOfBirth: '2023-01-01',
+          }),
+        })
+      );
+    });
+  });
+
+  it('displays error when API request fails', async () => {
+    global.fetch = jest.fn(() => Promise.reject(new Error('API failed')));
+    localStorage.setItem('token', 'fake-token');
+    render(<ProfileSetup onComplete={() => {}} />, { container });
+    await act(async () => {
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Mother' } });
+      fireEvent.change(screen.getByPlaceholderText(/Your Name/i), { target: { value: 'Jane' } });
+      fireEvent.change(screen.getByPlaceholderText(/Baby's Name/i), { target: { value: 'Emma' } });
+      fireEvent.change(container.querySelector('input[type="date"]'), { target: { value: '2023-01-01' } });
+      fireEvent.click(screen.getByText(/Continue/i));
+    });
+    await waitFor(() => {
+      expect(screen.getByText('API failed')).toBeInTheDocument();
     });
   });
 });
