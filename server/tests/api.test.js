@@ -82,4 +82,37 @@ describe('API Tests', () => {
     expect(res.body).toContainEqual(expect.objectContaining({ name: 'Jane', email: 'jane@example.com' }));
     expect(res.body).toContainEqual(expect.objectContaining({ name: 'John', email: 'john@example.com' }));
   }, 10000);
+
+  // New tests for GET /api/profiles
+  it('GET /api/profiles should return profiles for authenticated user', async () => {
+    // Register and login to get token
+    await request(app)
+      .post('/api/register')
+      .send({ name: 'Jane', email: 'jane@example.com', password: 'password123' });
+    const loginRes = await request(app)
+      .post('/api/login')
+      .send({ email: 'jane@example.com', password: 'password123' });
+    const token = loginRes.body.token;
+
+    // Create profiles
+    await request(app)
+      .post('/api/profiles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ relationship: 'Mother', childName: 'Emma', dateOfBirth: '2023-01-01' });
+
+    // Fetch profiles
+    const res = await request(app)
+      .get('/api/profiles')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.parent).toEqual({ name: 'Jane', relationship: 'Mother' });
+    expect(res.body.children).toHaveLength(1);
+    expect(res.body.children[0].name).toBe('Emma');
+  });
+
+  it('GET /api/profiles should return 401 for unauthenticated user', async () => {
+    const res = await request(app).get('/api/profiles');
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('No token provided');
+  });
 });
