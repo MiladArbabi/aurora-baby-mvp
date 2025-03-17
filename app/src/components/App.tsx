@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Signup from './auth/Signup';
 import ProfileSetupScreen from '../screens/ProfileSetupScreen';
-import ProfileSelection from './ProfileSelection';
+import ProfileSelectionScreen from '../screens/ProfileSelectionScreen';
 
 // Define interfaces for User and Child (adjust fields based on your API response)
 interface User {
@@ -77,7 +77,7 @@ const App: React.FC = () => {
   };
 
   if (isAuthenticated && !selectedChild && isProfileSetupComplete) {
-    return <ProfileSelection onSelect={handleProfileSelect} />;
+    return <ProfileSelectionScreen onSelect={handleProfileSelect} />;
   }
 
   if (isAuthenticated && !isProfileSetupComplete) {
