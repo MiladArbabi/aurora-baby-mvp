@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "jsx": "react",  // Use "react-jsx" if you’re on React 17+
+    "types": ["jest","node"],  // Add this line
+    "module": "commonjs",
+    "target": "es5",
+    "lib": ["dom", "es6"],
+    "allowJs": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src"]
+}
