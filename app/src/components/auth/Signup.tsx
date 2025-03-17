@@ -1,34 +1,41 @@
-// client/src/components/Signup.jsx
+// app/src/components/auth/Signup.tsx
 import React, { useState, useEffect } from 'react';
 import { signInWithPopup, GoogleAuthProvider, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth } from '../../firebase';
 
-function Signup({ onAuthSuccess }) {
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [emailSentMessage, setEmailSentMessage] = useState('');
+// Define props interface
+interface SignupProps {
+  onAuthSuccess: (isNewUser: boolean) => void;
+}
+
+const Signup: React.FC<SignupProps> = ({ onAuthSuccess }) => {
+  const [email, setEmail] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [emailSentMessage, setEmailSentMessage] = useState<string>('');
 
   useEffect(() => {
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-      const emailForSignIn = window.localStorage.getItem('emailForSignIn');
-      if (emailForSignIn) {
-        signInWithEmailLink(auth, emailForSignIn, window.location.href)
-          .then((userCredential) => {
-            const token = userCredential.user.getIdToken();
+    const completeSignIn = async () => {
+      if (isSignInWithEmailLink(auth, window.location.href)) {
+        const emailForSignIn = window.localStorage.getItem('emailForSignIn');
+        if (emailForSignIn) {
+          try {
+            const userCredential = await signInWithEmailLink(auth, emailForSignIn, window.location.href);
+            const token = await userCredential.user.getIdToken(); // Add await here
             localStorage.setItem('token', token);
             window.localStorage.removeItem('emailForSignIn');
             onAuthSuccess(true); // New user
-          })
-          .catch((error) => {
+          } catch (error: any) {
             console.error('Email link sign-in error:', error);
             setError(error.message);
-          });
+          }
+        }
       }
-    }
+    };
+    completeSignIn();
   }, [onAuthSuccess]);
 
-  const handleEmailLinkAuth = async (e) => {
+  const handleEmailLinkAuth = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setIsLoading(true);
     try {
@@ -41,7 +48,7 @@ function Signup({ onAuthSuccess }) {
       setEmailSentMessage(`Please follow the instructions in the email sent to ${email} to complete registration`);
       setEmail('');
       setError('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Email link send error:', error);
       setError(error.message);
     } finally {
@@ -49,7 +56,7 @@ function Signup({ onAuthSuccess }) {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (): Promise<void> => {
     setIsLoading(true);
     try {
       const provider = new GoogleAuthProvider();
@@ -63,7 +70,7 @@ function Signup({ onAuthSuccess }) {
       localStorage.setItem('token', token);
       setError('');
       onAuthSuccess(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google login error:', error);
       setError(error.message);
     } finally {
@@ -71,7 +78,7 @@ function Signup({ onAuthSuccess }) {
     }
   };
 
-  const handleAppleLogin = async () => {
+  const handleAppleLogin = async (): Promise<void> => {
     setIsLoading(true);
     try {
       const response = await fetch('http://localhost:5001/api/login/apple', {
@@ -83,7 +90,7 @@ function Signup({ onAuthSuccess }) {
       localStorage.setItem('token', token);
       setError('');
       onAuthSuccess(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Apple login error:', error);
       setError('Apple Sign-In unavailable without membership');
     } finally {
@@ -136,6 +143,6 @@ function Signup({ onAuthSuccess }) {
       )}
     </div>
   );
-}
+};
 
 export default Signup;

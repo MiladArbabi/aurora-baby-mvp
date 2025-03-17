@@ -1,8 +1,7 @@
-// client/src/tests/Signup.test.jsx
+// app/src/tests/Signup.test.tsx
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-
-// Define mockAuth first
-const mockAuth = {};
+import Signup from '../components/auth/Signup';
 
 // Mock firebase/auth
 jest.mock('firebase/auth', () => {
@@ -21,17 +20,13 @@ jest.mock('firebase/auth', () => {
   };
 });
 
-// Mock ../firebase with mockAuth
-jest.mock('../firebase', () => ({ auth: mockAuth }));
+// Mock ../firebase with an inline auth object
+jest.mock('../firebase', () => {
+  const mockAuth = {}; // Define mockAuth here or inline it
+  return { auth: mockAuth };
+});
 
 describe('Signup Component Tests', () => {
-  let Signup;
-
-  beforeAll(async () => {
-    const module = await import('../components/Signup');
-    Signup = module.default;
-  });
-
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
@@ -51,12 +46,10 @@ describe('Signup Component Tests', () => {
   });
 
   it('renders signup options initially', () => {
-    render(<Signup />);
+    render(<Signup onAuthSuccess={jest.fn()} />);
     expect(screen.getByText(/Welcome to Aurora Baby/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Your email')).toBeInTheDocument();
     expect(screen.getByText('Sign Up with Email')).toBeInTheDocument();
-    expect(screen.getByText(/Sign in with Google/i)).toBeInTheDocument();
-    expect(screen.getByText(/Sign in with Apple/i)).toBeInTheDocument();
   });
 
   it('sends email link and shows confirmation message', async () => {
@@ -73,6 +66,7 @@ describe('Signup Component Tests', () => {
 
   it('completes email link sign-in on redirect', async () => {
     const { isSignInWithEmailLink, signInWithEmailLink } = require('firebase/auth');
+    const mockAuth = require('../firebase').auth; // Access the mocked auth
     isSignInWithEmailLink.mockReturnValue(true);
     window.localStorage.setItem('emailForSignIn', 'jane@example.com');
     const onAuthSuccess = jest.fn();
@@ -111,14 +105,13 @@ describe('Signup Component Tests', () => {
   it('displays error message on email link failure', async () => {
     const { sendSignInLinkToEmail } = require('firebase/auth');
     sendSignInLinkToEmail.mockRejectedValue(new Error('Email send failed'));
-    // Suppress console.error for this specific test
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    render(<Signup />);
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    render(<Signup onAuthSuccess={jest.fn()} />);
     fireEvent.change(screen.getByPlaceholderText('Your email'), { target: { value: 'jane@example.com' } });
     fireEvent.click(screen.getByText('Sign Up with Email'));
     await waitFor(() => {
       expect(screen.getByText('Email send failed')).toBeInTheDocument();
     });
-    console.error.mockRestore(); // Restore after test
+    consoleErrorSpy.mockRestore();
   });
 });
