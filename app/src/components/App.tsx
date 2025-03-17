@@ -1,7 +1,7 @@
 // client/src/components/App.tsx
 import React, { useState, useEffect } from 'react';
-import Signup from './Signup';
-import ProfileSetup from './ProfileSetup';
+import Signup from './auth/Signup';
+import ProfileSetupScreen from '../screens/ProfileSetupScreen';
 import ProfileSelection from './ProfileSelection';
 
 // Define interfaces for User and Child (adjust fields based on your API response)
@@ -81,7 +81,7 @@ const App: React.FC = () => {
   }
 
   if (isAuthenticated && !isProfileSetupComplete) {
-    return <ProfileSetup onComplete={handleProfileComplete} />;
+    return <ProfileSetupScreen onComplete={handleProfileComplete} />;
   }
 
   if (!isAuthenticated) {
