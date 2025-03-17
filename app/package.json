@@ -1,5 +1,5 @@
 {
-  "name": "client",
+  "name": "app",
   "version": "0.1.0",
   "private": true,
   "proxy": "http://localhost:5001",
@@ -41,6 +41,8 @@
   },
   "devDependencies": {
     "@testing-library/react": "^16.2.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.10",
     "jest": "^27.5.1"
   }
 }

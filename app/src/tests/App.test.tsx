@@ -1,8 +1,10 @@
-// client/src/tests/App.test.jsx
+// client/src/tests/App.test.tsx
+import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { act } from 'react';
 import App from '../components/App';
 
+// Mock Firebase auth functions
 jest.mock('firebase/auth', () => ({
   sendSignInLinkToEmail: jest.fn(),
   isSignInWithEmailLink: jest.fn(),
@@ -21,7 +23,7 @@ describe('App Component Tests', () => {
     localStorage.clear();
     jest.clearAllMocks();
     const { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } = require('firebase/auth');
-    sendSignInLinkToEmail.mockResolvedValue();
+    sendSignInLinkToEmail.mockResolvedValue(undefined);
     isSignInWithEmailLink.mockReturnValue(false);
     signInWithEmailLink.mockResolvedValue({
       user: { getIdToken: () => Promise.resolve('fake-token') },
@@ -66,10 +68,8 @@ describe('App Component Tests', () => {
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) }) // Initial /api/users
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ _id: '3', name: 'Luna' }) }); // POST /api/users
 
-    // Render App once
     const { container } = render(<App />);
 
-    // Interact with Signup
     await act(async () => {
       fireEvent.change(screen.getByPlaceholderText(/Your email/i), { target: { value: 'jane@example.com' } });
       fireEvent.click(screen.getByText(/Sign Up with Email/i));
@@ -77,24 +77,19 @@ describe('App Component Tests', () => {
 
     await waitFor(() => expect(screen.getByText(/Please follow the instructions in the email sent to jane@example\.com/i)).toBeInTheDocument());
 
-    // Simulate email link sign-in within the same App instance
     isSignInWithEmailLink.mockReturnValue(true);
     window.localStorage.setItem('emailForSignIn', 'jane@example.com');
-    // Re-render to trigger useEffect in Signup
     render(<App />, { container });
 
-    // Wait for ProfileSetup screen
     await waitFor(() => expect(screen.getByText(/Set Up Your Profiles/i)).toBeInTheDocument(), { timeout: 3000 });
 
-    // Interact with ProfileSetup
     await act(async () => {
       fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Mother' } });
       fireEvent.change(screen.getByPlaceholderText(/Baby's Name/i), { target: { value: 'Emma' } });
-      fireEvent.change(container.querySelector('input[type="date"]'), { target: { value: '2020-01-01' } });
+      fireEvent.change(container.querySelector('input[type="date"]') as HTMLInputElement, { target: { value: '2020-01-01' } });
       fireEvent.click(screen.getByText(/Continue/i));
     });
 
-    // Wait for main App screen and interact with Add User form
     await waitFor(() => {
       expect(screen.getByText(/Aurora Baby/i)).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/Enter a name/i)).toBeInTheDocument();
