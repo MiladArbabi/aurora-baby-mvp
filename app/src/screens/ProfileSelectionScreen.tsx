@@ -1,5 +1,5 @@
 /**
- * ProfileSelection component for authenticated users to select a child profile.
+ * ProfileSelectionScreen component for authenticated users to select a child profile.
  * Fetches profiles from API and allows selection for app navigation.
  * @param {Object} props - Component props
  * @param {Function} props.onSelect - Callback triggered with selected child ID
@@ -7,10 +7,27 @@
  */
 import React, { useState, useEffect } from 'react';
 
-function ProfileSelection({ onSelect }) {
-  const [profiles, setProfiles] = useState({ parent: null, children: [] });
-  const [selectedChild, setSelectedChild] = useState('');
-  const [error, setError] = useState('');
+// Define interfaces for profiles
+interface Profile {
+  name: string;
+  relationship?: string; // Optional for parent profile
+  _id?: string; // Optional for child profiles
+}
+
+interface Profiles {
+  parent: Profile | null;
+  children: Profile[];
+}
+
+// Define props interface
+interface ProfileSelectionProps {
+  onSelect: (childId: string) => void;
+}
+
+const ProfileSelectionScreen: React.FC<ProfileSelectionProps> = ({ onSelect }) => {
+  const [profiles, setProfiles] = useState<Profiles>({ parent: null, children: [] });
+  const [selectedChild, setSelectedChild] = useState<string>('');
+  const [error, setError] = useState<string>('');
 
   /**
    * Fetches user profiles on mount, requiring a valid token.
@@ -31,11 +48,11 @@ function ProfileSelection({ onSelect }) {
         }
         return response.json();
       })
-      .then((data) => {
+      .then((data: Profiles) => {
         setProfiles(data);
         setError('');
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         console.error('Fetch profiles error:', error);
         setError(error.message);
       });
@@ -43,9 +60,9 @@ function ProfileSelection({ onSelect }) {
 
   /**
    * Handles form submission to select a child and trigger navigation.
-   * @param {Event} e - Form submission event
+   * @param {React.FormEvent<HTMLFormElement>} e - Form submission event
    */
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     if (!selectedChild) {
       setError('Please select a child to continue.');
@@ -82,6 +99,6 @@ function ProfileSelection({ onSelect }) {
       </form>
     </div>
   );
-}
+};
 
-export default ProfileSelection;
+export default ProfileSelectionScreen;

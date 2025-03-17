@@ -1,14 +1,14 @@
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { act } from 'react';
-import ProfileSelection from '../components/ProfileSelection';
-
-// Mock fetch for API simulation
-global.fetch = jest.fn();
+import ProfileSelectionScreen from '../screens/ProfileSelectionScreen';
 
 describe('ProfileSelection Component Tests', () => {
   beforeEach(() => {
     localStorage.clear();
     jest.clearAllMocks();
+    // Mock global.fetch as a Jest mock function
+    global.fetch = jest.fn() as jest.Mock;
     // Suppress console errors for cleaner test output
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -18,7 +18,7 @@ describe('ProfileSelection Component Tests', () => {
   });
 
   it('renders profile selection form', () => {
-    render(<ProfileSelection onSelect={() => {}} />);
+    render(<ProfileSelectionScreen onSelect={() => {}} />);
     expect(screen.getByText(/Select Your Child/i)).toBeInTheDocument();
   });
 
@@ -27,13 +27,13 @@ describe('ProfileSelection Component Tests', () => {
       parent: { name: 'Jane', relationship: 'Mother' },
       children: [{ _id: '1', name: 'Emma' }],
     };
-    global.fetch.mockResolvedValueOnce({
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(mockProfiles),
     });
     localStorage.setItem('token', 'fake-token');
 
-    render(<ProfileSelection onSelect={() => {}} />);
+    render(<ProfileSelectionScreen onSelect={() => {}} />);
     await waitFor(() => {
       expect(screen.getByText(/Parent: Jane \(Mother\)/i)).toBeInTheDocument();
       expect(screen.getByText('Emma')).toBeInTheDocument();
@@ -41,15 +41,15 @@ describe('ProfileSelection Component Tests', () => {
   });
 
   it('displays error when token is missing', () => {
-    render(<ProfileSelection onSelect={() => {}} />);
+    render(<ProfileSelectionScreen onSelect={() => {}} />);
     expect(screen.getByText(/No authentication token found/i)).toBeInTheDocument();
   });
 
   it('displays error when fetch fails', async () => {
-    global.fetch.mockRejectedValueOnce(new Error('Failed to fetch profiles'));
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Failed to fetch profiles'));
     localStorage.setItem('token', 'fake-token');
 
-    render(<ProfileSelection onSelect={() => {}} />);
+    render(<ProfileSelectionScreen onSelect={() => {}} />);
     await waitFor(() => {
       expect(screen.getByText('Failed to fetch profiles')).toBeInTheDocument();
     });
@@ -60,14 +60,14 @@ describe('ProfileSelection Component Tests', () => {
       parent: { name: 'Jane', relationship: 'Mother' },
       children: [{ _id: '1', name: 'Emma' }],
     };
-    global.fetch.mockResolvedValueOnce({
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(mockProfiles),
     });
     localStorage.setItem('token', 'fake-token');
     const mockOnSelect = jest.fn();
 
-    render(<ProfileSelection onSelect={mockOnSelect} />);
+    render(<ProfileSelectionScreen onSelect={mockOnSelect} />);
     await waitFor(() => {
       fireEvent.change(screen.getByRole('combobox'), { target: { value: '1' } });
       fireEvent.click(screen.getByText('Continue'));
