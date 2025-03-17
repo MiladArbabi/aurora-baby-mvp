@@ -2,7 +2,7 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { act } from 'react';
-import App from '../components/App';
+import App from '../App';
 
 // Mock Firebase auth functions
 jest.mock('firebase/auth', () => ({
