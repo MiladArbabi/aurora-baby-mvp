@@ -1,26 +1,30 @@
-// app/src/App.tsx
+// src/App.tsx
 import React, { useState, useEffect } from 'react';
 import Signup from './components/auth/Signup';
 import ProfileSetupScreen from './screens/ProfileSetupScreen';
 import ProfileSelectionScreen from './screens/ProfileSelectionScreen';
 import HomeScreen from './screens/HomeScreen';
 
-// Define interfaces for User and Child (adjust fields based on your API response)
 interface User {
   _id: string;
   name: string;
-  // Add other fields as needed from your API
 }
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('token'));
-  const [isProfileSetupComplete, setIsProfileSetupComplete] = useState<boolean>(false);
-  const [selectedChild, setSelectedChild] = useState<string | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
+    process.env.REACT_APP_DEV_MODE === 'true' ? true : !!localStorage.getItem('token')
+  );
+  const [isProfileSetupComplete, setIsProfileSetupComplete] = useState<boolean>(
+    process.env.REACT_APP_DEV_MODE === 'true' ? true : false
+  );
+  const [selectedChild, setSelectedChild] = useState<string | null>(
+    process.env.REACT_APP_DEV_MODE === 'true' ? 'mock-child-id' : null
+  );
+  const [users, setUsers] = useState<User[]>([]); // Used in handleSubmit
   const [name, setName] = useState<string>('');
 
   useEffect(() => {
-    if (isAuthenticated && selectedChild) {
+    if (isAuthenticated && selectedChild && process.env.REACT_APP_DEV_MODE !== 'true') {
       fetch('http://localhost:5001/api/users', {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
       })
@@ -46,7 +50,7 @@ const App: React.FC = () => {
 
   const handleProfileComplete = (): void => {
     setIsProfileSetupComplete(true);
-    setSelectedChild(null); // Reset to force profile selection
+    setSelectedChild(null);
   };
 
   const handleProfileSelect = (childId: string): void => {
@@ -76,6 +80,11 @@ const App: React.FC = () => {
       })
       .catch((error) => console.error('Error adding user:', error));
   };
+
+  // In dev mode, always show HomeScreen
+  if (process.env.REACT_APP_DEV_MODE === 'true') {
+    return <HomeScreen />;
+  }
 
   if (isAuthenticated && !selectedChild && isProfileSetupComplete) {
     return <ProfileSelectionScreen onSelect={handleProfileSelect} />;
