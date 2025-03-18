@@ -7,7 +7,25 @@ const ParentChildLink = require('../models/ParentChildLink');
 
 const router = express.Router();
 
-// Get all users
+// Middleware to verify JWT token
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'secret_key', (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
+    req.userId = decoded.userId;
+    next();
+  });
+};
+
+// Get all users (unprotected for testing)
 router.get('/users', async (req, res) => {
   try {
     const users = await User.find();
@@ -25,7 +43,7 @@ router.post('/users', async (req, res) => {
     const user = new User({
       name,
       email: `${name.toLowerCase()}@example.com`,
-      passwordHash: await bcrypt.hash('dummy123', 10)
+      passwordHash: await bcrypt.hash('dummy123', 10),
     });
     await user.save();
     res.status(201).json(user);
@@ -37,9 +55,13 @@ router.post('/users', async (req, res) => {
 // Register a new user
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
-  if (!name || !email || !password) return res.status(400).json({ error: 'All fields required' });
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'Name, email, and password are required' });
+  }
   try {
-    if (await User.findOne({ email })) return res.status(400).json({ error: 'Email already exists' });
+    if (await User.findOne({ email })) {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
     const passwordHash = await bcrypt.hash(password, 10);
     const user = new User({ name, email, passwordHash });
     await user.save();
@@ -53,7 +75,9 @@ router.post('/register', async (req, res) => {
 // Login a user
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
   try {
     const user = await User.findOne({ email });
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
@@ -67,42 +91,57 @@ router.post('/login', async (req, res) => {
 });
 
 // Create profiles (parent and child)
-router.post('/profiles', async (req, res) => {
-  const { relationship, childName, dateOfBirth } = req.body;
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+router.post('/profiles', authenticateToken, async (req, res) => {
+  const { relationship, parentName, childName, dateOfBirth, parentAvatar, childAvatar } = req.body;
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_key');
-    const user = await User.findById(decoded.userId);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    user.relationship = relationship;
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update parent details
+    if (parentName) user.name = parentName;
+    if (relationship) user.relationship = relationship;
+    if (parentAvatar) user.avatar = parentAvatar;
     await user.save();
-    const child = new Child({ name: childName, dateOfBirth });
+
+    // Validate and create child
+    if (!childName || !dateOfBirth) {
+      return res.status(400).json({ error: 'childName and dateOfBirth are required' });
+    }
+    const child = new Child({
+      name: childName,
+      dateOfBirth: new Date(dateOfBirth),
+      avatar: childAvatar || null,
+    });
     await child.save();
+
+    // Link parent and child
     await new ParentChildLink({ userId: user._id, childId: child._id }).save();
+
     res.status(201).json({ user, child });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Profile setup error:', error);
+    res.status(400).json({ error: error.message || 'Profile setup failed' });
   }
 });
 
 // Get profiles for authenticated user
-router.get('/profiles', async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'No token provided' });
-
+router.get('/profiles', authenticateToken, async (req, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_key');
-    const user = await User.findById(decoded.userId);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     const links = await ParentChildLink.find({ userId: user._id });
     const childIds = links.map(link => link.childId);
     const children = await Child.find({ _id: { $in: childIds } });
 
     res.json({
-      parent: { name: user.name, relationship: user.relationship },
-      children: children.map(child => ({ _id: child._id, name: child.name })),
+      parent: { name: user.name, relationship: user.relationship, avatar: user.avatar },
+      children: children.map(child => ({ _id: child._id, name: child.name, avatar: child.avatar })),
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

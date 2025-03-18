@@ -56,7 +56,13 @@ describe('ProfileSetup Component Tests', () => {
 
   it('submits profile setup successfully with all fields', async () => {
     const mockOnComplete = jest.fn();
-    global.fetch = jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as any));
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({}),
+      } as Response)
+    );
+    
     localStorage.setItem('token', 'fake-token');
     render(<ProfileSetupScreen onComplete={mockOnComplete} />);
     await act(async () => {
@@ -69,7 +75,7 @@ describe('ProfileSetup Component Tests', () => {
     await waitFor(() => {
       expect(mockOnComplete).toHaveBeenCalled();
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/profiles',
+        'http://localhost:5001/api/profiles',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({

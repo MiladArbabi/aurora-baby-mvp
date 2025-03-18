@@ -27,29 +27,31 @@
         return;
       }
       try {
-        const response = await fetch('/api/profiles', {
+        console.log('Submitting:', { relationship, parentName, childName, dateOfBirth, parentAvatar, childAvatar });
+        const response = await fetch('http://localhost:5001/api/profiles', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`, 
           },
           body: JSON.stringify({
             relationship,
             parentName,
             childName,
             dateOfBirth,
-            parentAvatar: parentAvatar ? URL.createObjectURL(parentAvatar) : null,
-            childAvatar: childAvatar ? URL.createObjectURL(childAvatar) : null,
+            parentAvatar: parentAvatar ? parentAvatar.name : null, // Adjust if you handle file uploads differently
+            childAvatar: childAvatar ? childAvatar.name : null,    
           }),
         });
+    
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.message || 'Profile setup failed');
+          throw new Error(errorData.error || 'Profile setup failed');
         }
         onComplete();
       } catch (error: any) {
         console.error('Profile setup error:', error);
-        setError(error.message);
+        setError(error.message || 'Profile setup failed');
       }
     };
 

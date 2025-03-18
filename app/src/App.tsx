@@ -1,8 +1,9 @@
-// client/src/components/App.tsx
+// app/src/App.tsx
 import React, { useState, useEffect } from 'react';
 import Signup from './components/auth/Signup';
 import ProfileSetupScreen from './screens/ProfileSetupScreen';
 import ProfileSelectionScreen from './screens/ProfileSelectionScreen';
+import HomeScreen from './screens/HomeScreen';
 
 // Define interfaces for User and Child (adjust fields based on your API response)
 interface User {
@@ -45,7 +46,7 @@ const App: React.FC = () => {
 
   const handleProfileComplete = (): void => {
     setIsProfileSetupComplete(true);
-    setSelectedChild('default-child-id'); // Replace with actual logic
+    setSelectedChild(null); // Reset to force profile selection
   };
 
   const handleProfileSelect = (childId: string): void => {
@@ -88,26 +89,7 @@ const App: React.FC = () => {
     return <Signup onAuthSuccess={handleAuthSuccess} />;
   }
 
-  return (
-    <div style={{ padding: '20px', fontFamily: 'Arial' }}>
-      <h1>Aurora Baby</h1>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Enter a name"
-          style={{ marginRight: '10px' }}
-        />
-        <button type="submit">Add User</button>
-      </form>
-      <ul>
-        {users.map((user) => (
-          <li key={user._id}>{user.name}</li>
-        ))}
-      </ul>
-    </div>
-  );
+  return <HomeScreen />;
 };
 
 export default App;

@@ -21,7 +21,7 @@ const Signup: React.FC<SignupProps> = ({ onAuthSuccess }) => {
         if (emailForSignIn) {
           try {
             const userCredential = await signInWithEmailLink(auth, emailForSignIn, window.location.href);
-            const token = await userCredential.user.getIdToken(); // Add await here
+            const token = await userCredential.user.getIdToken();
             localStorage.setItem('token', token);
             window.localStorage.removeItem('emailForSignIn');
             onAuthSuccess(true); // New user

@@ -1,10 +1,3 @@
-/**
- * ProfileSelectionScreen component for authenticated users to select a child profile.
- * Fetches profiles from API and allows selection for app navigation.
- * @param {Object} props - Component props
- * @param {Function} props.onSelect - Callback triggered with selected child ID
- * @returns {JSX.Element} Profile selection form UI
- */
 import React, { useState, useEffect } from 'react';
 
 // Define interfaces for profiles
@@ -28,40 +21,37 @@ const ProfileSelectionScreen: React.FC<ProfileSelectionProps> = ({ onSelect }) =
   const [profiles, setProfiles] = useState<Profiles>({ parent: null, children: [] });
   const [selectedChild, setSelectedChild] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Add loading state
 
-  /**
-   * Fetches user profiles on mount, requiring a valid token.
-   */
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError('No authentication token found. Please sign in.');
-      return;
-    }
+    const fetchProfiles = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('No authentication token found. Please sign in.');
+        setIsLoading(false);
+        return;
+      }
 
-    fetch('http://localhost:5001/api/profiles', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    })
-      .then((response) => {
+      try {
+        const response = await fetch('http://localhost:5001/api/profiles', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
         if (!response.ok) {
           throw new Error(response.status === 401 ? 'Unauthorized access' : 'Failed to fetch profiles');
         }
-        return response.json();
-      })
-      .then((data: Profiles) => {
+        const data: Profiles = await response.json();
         setProfiles(data);
         setError('');
-      })
-      .catch((error: Error) => {
+      } catch (error: any) {
         console.error('Fetch profiles error:', error);
         setError(error.message);
-      });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProfiles();
   }, []);
 
-  /**
-   * Handles form submission to select a child and trigger navigation.
-   * @param {React.FormEvent<HTMLFormElement>} e - Form submission event
-   */
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     if (!selectedChild) {
@@ -70,6 +60,10 @@ const ProfileSelectionScreen: React.FC<ProfileSelectionProps> = ({ onSelect }) =
     }
     onSelect(selectedChild);
   };
+
+  if (isLoading) {
+    return <p>Loading profiles...</p>;
+  }
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial' }}>
@@ -87,11 +81,15 @@ const ProfileSelectionScreen: React.FC<ProfileSelectionProps> = ({ onSelect }) =
           style={{ margin: '10px 0' }}
         >
           <option value="">Choose a child</option>
-          {profiles.children.map((child) => (
-            <option key={child._id} value={child._id}>
-              {child.name}
-            </option>
-          ))}
+          {profiles.children && profiles.children.length > 0 ? (
+            profiles.children.map((child) => (
+              <option key={child._id} value={child._id}>
+                {child.name}
+              </option>
+            ))
+          ) : (
+            <option disabled>No children available</option>
+          )}
         </select>
         <button type="submit" disabled={!selectedChild}>
           Continue
