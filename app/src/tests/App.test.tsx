@@ -4,34 +4,12 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { act } from 'react';
 import App from '../App';
 
-// Mock Firebase auth functions
-jest.mock('firebase/auth', () => ({
-  sendSignInLinkToEmail: jest.fn(),
-  isSignInWithEmailLink: jest.fn(),
-  signInWithEmailLink: jest.fn(),
-  signInWithPopup: jest.fn(),
-  GoogleAuthProvider: () => ({
-    addScope: jest.fn(),
-    setCustomParameters: jest.fn(),
-  }),
-}));
-
-jest.mock('../firebase', () => ({ auth: {} }));
-
 describe('App Component Tests', () => {
   let fetchMock: jest.Mock;
 
   beforeEach(() => {
     localStorage.clear();
     jest.clearAllMocks();
-    const { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } = require('firebase/auth');
-    sendSignInLinkToEmail.mockResolvedValue(undefined);
-    isSignInWithEmailLink.mockReturnValue(false);
-    signInWithEmailLink.mockResolvedValue({
-      user: { getIdToken: () => Promise.resolve('fake-token') },
-    });
-
-    // Define fetchMock as a Jest mock function
     fetchMock = jest.fn();
     global.fetch = fetchMock;
   });
@@ -48,37 +26,32 @@ describe('App Component Tests', () => {
     render(<App />);
     await waitFor(() => {
       expect(screen.getByText(/Welcome to Aurora Baby/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/Your email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Your email')).toBeInTheDocument();
     });
   });
 
   it('displays users fetched from the backend after login for returning user', async () => {
     localStorage.setItem('token', 'fake-token');
 
-    // Mock fetch calls for profile setup and selection
     fetchMock
-      // Mock POST /api/profiles for profile setup
       .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ _id: '1', name: 'Birk' }),
-      })
-      // Mock GET /api/profiles for profile selection
+      }) // POST /api/profiles
       .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
           parent: { name: 'Jane' },
           children: [{ _id: '1', name: 'Birk' }, { _id: '2', name: 'Freya' }],
         }),
-      })
-      // Mock GET /api/users (if called by App.tsx useEffect)
+      }) // GET /api/profiles
       .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve([]),
-      });
+      }); // GET /api/users
 
     const { container } = render(<App />);
 
-    // Simulate profile setup for a returning user who hasn’t completed it in this test run
     await waitFor(() => expect(screen.getByText(/Set Up Your Profiles/i)).toBeInTheDocument(), { timeout: 3000 });
 
     await act(async () => {
@@ -88,45 +61,38 @@ describe('App Component Tests', () => {
       fireEvent.click(screen.getByText(/Continue/i));
     });
 
-    // Wait for ProfileSelectionScreen
     await waitFor(() => expect(screen.getByText('Select Your Child')).toBeInTheDocument(), { timeout: 3000 });
     await waitFor(() => expect(screen.getByRole('option', { name: 'Birk' })).toBeInTheDocument(), { timeout: 3000 });
 
-    // Select a child and continue
     await act(async () => {
       fireEvent.change(screen.getByRole('combobox'), { target: { value: '1' } });
       fireEvent.click(screen.getByText(/Continue/i));
     });
 
-    // Verify navigation to HomeScreen
     await waitFor(() => {
       expect(screen.getByText('Home')).toBeInTheDocument();
       expect(screen.getByText('Welcome to your Aurora Baby home screen!')).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 
-  it('navigates to home screen after email link setup and profile selection for new user', async () => {
-    const { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } = require('firebase/auth');
-
+  it('navigates to home screen after signup and profile selection for new user', async () => {
     fetchMock
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ token: 'fake-token' }) }) // POST /api/register
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ _id: '1', name: 'Emma' }) }) // POST /api/profiles
       .mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ parent: { name: 'Jane' }, children: [{ _id: '1', name: 'Emma' }] }),
-      })
+      }) // GET /api/profiles
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) }); // GET /api/users
 
     const { container } = render(<App />);
 
     await act(async () => {
+      fireEvent.change(screen.getByPlaceholderText(/Your name/i), { target: { value: 'Jane' } });
       fireEvent.change(screen.getByPlaceholderText(/Your email/i), { target: { value: 'jane@example.com' } });
-      fireEvent.click(screen.getByText(/Sign Up with Email/i));
+      fireEvent.change(screen.getByPlaceholderText(/Your password/i), { target: { value: 'password123' } });
+      fireEvent.click(screen.getByText('Sign Up'));
     });
-
-    await waitFor(() => expect(screen.getByText(/Please follow the instructions in the email sent to jane@example\.com/i)).toBeInTheDocument());
-
-    isSignInWithEmailLink.mockReturnValue(true);
-    render(<App />, { container });
 
     await waitFor(() => expect(screen.getByText(/Set Up Your Profiles/i)).toBeInTheDocument(), { timeout: 3000 });
 

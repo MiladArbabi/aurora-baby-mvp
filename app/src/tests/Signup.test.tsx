@@ -1,117 +1,63 @@
-// app/src/tests/Signup.test.tsx
+// src/tests/Signup.test.tsx
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act } from 'react';
 import Signup from '../components/auth/Signup';
-
-// Mock firebase/auth
-jest.mock('firebase/auth', () => {
-  const mockGoogleAuthProvider = () => ({
-    addScope: jest.fn(),
-    setCustomParameters: jest.fn(),
-  });
-  return {
-    sendSignInLinkToEmail: jest.fn(),
-    isSignInWithEmailLink: jest.fn(),
-    signInWithEmailLink: jest.fn(),
-    signInWithPopup: jest.fn(),
-    GoogleAuthProvider: function () {
-      return mockGoogleAuthProvider();
-    },
-  };
-});
-
-// Mock ../firebase with an inline auth object
-jest.mock('../firebase', () => {
-  const mockAuth = {}; // Define mockAuth here or inline it
-  return { auth: mockAuth };
-});
 
 describe('Signup Component Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
     localStorage.clear();
-    const { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signInWithPopup } = require('firebase/auth');
-    sendSignInLinkToEmail.mockResolvedValue();
-    isSignInWithEmailLink.mockReturnValue(false);
-    signInWithEmailLink.mockResolvedValue({
-      user: { getIdToken: () => 'fake-token' },
-    });
-    signInWithPopup.mockResolvedValue({
-      user: { getIdToken: () => Promise.resolve('google-token') },
-    });
+    jest.clearAllMocks();
+    jest.spyOn(console, 'error').mockImplementation(() => {}); // Suppress console.error
   });
 
   afterEach(() => {
-    jest.restoreAllMocks(); // Ensure mocks are cleaned up
+    jest.restoreAllMocks();
   });
 
-  it('renders signup options initially', () => {
+  it('renders signup form initially', () => {
     render(<Signup onAuthSuccess={jest.fn()} />);
     expect(screen.getByText(/Welcome to Aurora Baby/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Your name')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Your email')).toBeInTheDocument();
-    expect(screen.getByText('Sign Up with Email')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Your password')).toBeInTheDocument();
+    expect(screen.getByText('Sign Up')).toBeInTheDocument();
   });
 
-  it('sends email link and shows confirmation message', async () => {
+  it('submits signup and shows success message', async () => {
     const onAuthSuccess = jest.fn();
-    render(<Signup onAuthSuccess={onAuthSuccess} />);
-    fireEvent.change(screen.getByPlaceholderText('Your email'), { target: { value: 'jane@example.com' } });
-    fireEvent.click(screen.getByText('Sign Up with Email'));
-    expect(screen.getByText('Sending...')).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByText(/Please follow the instructions in the email sent to jane@example\.com/i)).toBeInTheDocument();
-      expect(screen.queryByText('Sign Up with Email')).not.toBeInTheDocument();
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ token: 'fake-token' }),
     });
-  });
 
-  it('completes email link sign-in on redirect', async () => {
-    const { isSignInWithEmailLink, signInWithEmailLink } = require('firebase/auth');
-    const mockAuth = require('../firebase').auth; // Access the mocked auth
-    isSignInWithEmailLink.mockReturnValue(true);
-    window.localStorage.setItem('emailForSignIn', 'jane@example.com');
-    const onAuthSuccess = jest.fn();
     render(<Signup onAuthSuccess={onAuthSuccess} />);
+    fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'Jane' } });
+    fireEvent.change(screen.getByPlaceholderText('Your email'), { target: { value: 'jane@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Your password'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByText('Sign Up'));
+
     await waitFor(() => {
-      expect(signInWithEmailLink).toHaveBeenCalledWith(mockAuth, 'jane@example.com', window.location.href);
+      expect(screen.getByText(/Successfully registered jane@example\.com/i)).toBeInTheDocument();
       expect(onAuthSuccess).toHaveBeenCalledWith(true);
       expect(localStorage.getItem('token')).toBe('fake-token');
     });
   });
 
-  it('initiates Google signup and calls onAuthSuccess', async () => {
-    const onAuthSuccess = jest.fn();
-    render(<Signup onAuthSuccess={onAuthSuccess} />);
-    fireEvent.click(screen.getByText(/Sign in with Google/i));
-    await waitFor(() => {
-      expect(onAuthSuccess).toHaveBeenCalledWith(true);
-      expect(localStorage.getItem('token')).toBe('google-token');
+  it('displays error message on signup failure', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: false,
+      json: () => Promise.resolve({ error: 'Signup failed' }),
     });
-  });
 
-  it('initiates Apple signup and calls onAuthSuccess', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ token: 'apple-token' }),
-    });
-    const onAuthSuccess = jest.fn();
-    render(<Signup onAuthSuccess={onAuthSuccess} />);
-    fireEvent.click(screen.getByText(/Sign in with Apple/i));
-    await waitFor(() => {
-      expect(onAuthSuccess).toHaveBeenCalledWith(true);
-      expect(localStorage.getItem('token')).toBe('apple-token');
-    });
-  });
-
-  it('displays error message on email link failure', async () => {
-    const { sendSignInLinkToEmail } = require('firebase/auth');
-    sendSignInLinkToEmail.mockRejectedValue(new Error('Email send failed'));
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     render(<Signup onAuthSuccess={jest.fn()} />);
+    fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'Jane' } });
     fireEvent.change(screen.getByPlaceholderText('Your email'), { target: { value: 'jane@example.com' } });
-    fireEvent.click(screen.getByText('Sign Up with Email'));
+    fireEvent.change(screen.getByPlaceholderText('Your password'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByText('Sign Up'));
+
     await waitFor(() => {
-      expect(screen.getByText('Email send failed')).toBeInTheDocument();
+      expect(screen.getByText('Signup failed')).toBeInTheDocument();
     });
-    consoleErrorSpy.mockRestore();
   });
 });
