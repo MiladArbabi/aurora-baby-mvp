@@ -5,53 +5,34 @@ import { act } from 'react';
 import App from '../App';
 
 describe('App Component Tests', () => {
-  let fetchMock: jest.Mock;
-
   beforeEach(() => {
     localStorage.clear();
     jest.clearAllMocks();
-    fetchMock = jest.fn();
-    global.fetch = fetchMock;
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
   });
 
   it('renders signup screen initially', async () => {
-    fetchMock.mockResolvedValueOnce({
+    global.fetch = jest.fn().mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve([]),
     });
     render(<App />);
     await waitFor(() => {
-      expect(screen.getByText(/Welcome to Aurora Baby/i)).toBeInTheDocument();
+      expect(screen.getByText(/Harmony, Care and Wonder/i)).toBeInTheDocument();
       expect(screen.getByPlaceholderText('Your email')).toBeInTheDocument();
     });
   });
 
   it('displays users fetched from the backend after login for returning user', async () => {
     localStorage.setItem('token', 'fake-token');
-
-    fetchMock
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ _id: '1', name: 'Birk' }) }) // POST /api/profiles
       .mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ _id: '1', name: 'Birk' }),
-      }) // POST /api/profiles
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          parent: { name: 'Jane' },
-          children: [{ _id: '1', name: 'Birk' }, { _id: '2', name: 'Freya' }],
-        }),
+        json: () => Promise.resolve({ parent: { name: 'Jane' }, children: [{ _id: '1', name: 'Birk' }, { _id: '2', name: 'Freya' }] }),
       }) // GET /api/profiles
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve([]),
-      }); // GET /api/users
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) }); // GET /api/users
 
     const { container } = render(<App />);
-
     await waitFor(() => expect(screen.getByText(/Set Up Your Profiles/i)).toBeInTheDocument(), { timeout: 3000 });
 
     await act(async () => {
@@ -70,13 +51,13 @@ describe('App Component Tests', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Home')).toBeInTheDocument();
-      expect(screen.getByText('Welcome to your Aurora Baby home screen!')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument(); // Updated text
+      expect(screen.getByText('Harmony')).toBeInTheDocument(); // Check for a box
     }, { timeout: 3000 });
   });
 
   it('navigates to home screen after signup and profile selection for new user', async () => {
-    fetchMock
+    global.fetch = jest.fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ token: 'fake-token' }) }) // POST /api/register
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ _id: '1', name: 'Emma' }) }) // POST /api/profiles
       .mockResolvedValueOnce({
@@ -86,7 +67,6 @@ describe('App Component Tests', () => {
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) }); // GET /api/users
 
     const { container } = render(<App />);
-
     await act(async () => {
       fireEvent.change(screen.getByPlaceholderText(/Your name/i), { target: { value: 'Jane' } });
       fireEvent.change(screen.getByPlaceholderText(/Your email/i), { target: { value: 'jane@example.com' } });
@@ -111,8 +91,8 @@ describe('App Component Tests', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Home')).toBeInTheDocument();
-      expect(screen.getByText('Welcome to your Aurora Baby home screen!')).toBeInTheDocument();
+      expect(screen.getByText('Home')).toBeInTheDocument(); // Updated text
+      expect(screen.getByText('Harmony')).toBeInTheDocument(); // Check for a box
     }, { timeout: 3000 });
   });
 });

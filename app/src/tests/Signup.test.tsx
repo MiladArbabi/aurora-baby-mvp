@@ -17,7 +17,7 @@ describe('Signup Component Tests', () => {
 
   it('renders signup form initially', () => {
     render(<Signup onAuthSuccess={jest.fn()} />);
-    expect(screen.getByText(/Welcome to Aurora Baby/i)).toBeInTheDocument();
+    expect(screen.getByText(/Harmony, Care and Wonder/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Your name')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Your email')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Your password')).toBeInTheDocument();
